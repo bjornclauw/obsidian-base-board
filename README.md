@@ -23,29 +23,21 @@ https://github.com/user-attachments/assets/9ae6e1b7-729f-4891-b853-d1f5d2ebe755
 - **One-Click Creation**: Add new notes directly to a specific column without leaving the board view.
 - **Data First**: All changes are written directly to your Markdown files.
 
-## CLI (beta)
-
-`base-board-cli` is a command-line tool for managing your board from the terminal or from AI coding agents. It supports reading the board, moving cards, creating cards, and updating properties.
-
-```
-npx base-board-cli board
-npx base-board-cli move <id> "In Progress"
-npx base-board-cli create "Fix login bug" --column Backlog
-```
-
-See [packages/cli/README.md](packages/cli/README.md) for full usage. Note: the CLI is still in beta.
-
-## AI / Coding Agents
-
-Because Base Board relies purely on standard markdown frontmatter instead of proprietary formats, it pairs perfectly with AI coding assistants. Simply copy our [AI Instructions Template](AI-INSTRUCTIONS-TEMPLATE.md) into your project's `AGENTS.md` file to instantly teach any LLM how to create and move tasks on your board.
-
 ## Usage
 
 Open the **Command palette** (`Ctrl/Cmd + P`) and run **"Base Board: Create new board"**. Enter a name, choose a folder, and the plugin will scaffold everything for you — a `.base` file, a tasks folder, and sample task notes. The board opens automatically.
 
 ## Installation
 
+### From Obsidian Community Plugins
+
 Search for **Base Board** in the Obsidian Community Plugins browser and click **Install**.
+
+### Using BRAT
+
+1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
+2. Go to **Settings → BRAT → Add Beta Plugin**.
+3. Enter `mderazon/obsidian-base-board` and click **Add Plugin**.
 
 ## Development
 

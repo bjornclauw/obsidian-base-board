@@ -2,7 +2,6 @@ name: Release Obsidian plugin
 
 on:
   push:
-    # Triggers the workflow when a tag is pushed (e.g. `1.0.0` or `v1.0.0`)
     tags:
       - "*"
 
@@ -22,13 +21,10 @@ jobs:
           node-version: "24"
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
-      - name: Lint (Plugin & packages)
+      - name: Lint
         run: npm run lint
-
-      - name: Test MCP
-        run: npm test --workspace=packages/mcp
 
       - name: Build plugin
         run: npm run build
