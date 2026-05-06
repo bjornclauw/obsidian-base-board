@@ -71,7 +71,9 @@ export class Tags {
         .map((t) => t.trim())
         .filter((t) => t);
     }
-    return fileTags;
+    // Strip '#' prefix — Obsidian's MetadataCache sometimes normalises
+    // frontmatter tags with a leading '#' (e.g. "#my-tag" instead of "my-tag").
+    return fileTags.map((t) => (t.startsWith("#") ? t.slice(1) : t));
   }
 
   public promptEditTags(file: TFile): void {
