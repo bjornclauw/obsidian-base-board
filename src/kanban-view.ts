@@ -284,9 +284,7 @@ export class KanbanView extends BasesView implements HoverParent {
     // Save scroll positions before destroying the DOM so we can restore
     // them after rebuild.  Without this the board jumps back to 0 on every
     // re-render (metadata update, drag hover, etc.).
-    const prevBoardEl = this.containerEl.querySelector(
-      ".base-board-board",
-    ) as HTMLElement | null;
+    const prevBoardEl = this.containerEl.querySelector(".base-board-board");
     const savedScrollLeft = prevBoardEl?.scrollLeft ?? 0;
     const savedScrollTop = this.scrollEl.scrollTop;
 
