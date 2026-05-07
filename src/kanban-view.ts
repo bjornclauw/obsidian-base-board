@@ -280,6 +280,16 @@ export class KanbanView extends BasesView implements HoverParent {
 
   public render(): void {
     this.selectedCards.clear();
+
+    // Save scroll positions before destroying the DOM so we can restore
+    // them after rebuild.  Without this the board jumps back to 0 on every
+    // re-render (metadata update, drag hover, etc.).
+    const prevBoardEl = this.containerEl.querySelector(
+      ".base-board-board",
+    ) as HTMLElement | null;
+    const savedScrollLeft = prevBoardEl?.scrollLeft ?? 0;
+    const savedScrollTop = this.scrollEl.scrollTop;
+
     this.containerEl.empty();
 
     // Use the official API: this.data is a BasesQueryResult
@@ -324,6 +334,14 @@ export class KanbanView extends BasesView implements HoverParent {
 
     this.columnManager.renderAddColumnButton(boardEl);
     this.dragDropManager.initBoard(boardEl);
+
+    // Restore scroll positions after the browser has laid out the new DOM
+    if (savedScrollLeft > 0 || savedScrollTop > 0) {
+      requestAnimationFrame(() => {
+        boardEl.scrollLeft = savedScrollLeft;
+        this.scrollEl.scrollTop = savedScrollTop;
+      });
+    }
   }
 
   // ---------------------------------------------------------------------------
