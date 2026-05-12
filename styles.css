@@ -426,7 +426,9 @@
 }
 
 .base-board-card-chips-overflow--expanded {
-  display: contents;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 /* "Show more" toggle button */
