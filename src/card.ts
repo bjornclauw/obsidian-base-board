@@ -230,20 +230,22 @@ export class CardManager {
     // ---- Property chips ----
     const propsEl = cardEl.createDiv({ cls: "base-board-card-props" });
     const groupByProp = this.view.getGroupByProperty();
-    // Use the official API: getOrder() returns the user-configured visible
-    // properties in the order set via the Properties toolbar menu.
     const visibleProps: BasesPropertyId[] = this.view.config.getOrder();
-    let shown = 0;
+
+    // Collect eligible chip descriptors in one pass so filtering logic lives
+    // in one place.  No DOM is created yet.
+    interface ChipDescriptor {
+      propId: string;
+      displayName: string;
+      display: string;
+    }
+
+    const chips: ChipDescriptor[] = [];
     for (const propId of visibleProps) {
-      if (shown >= 3) break;
-      // Skip formula properties (not user-readable as chips).
+      if (chips.length >= 6) break;
       if (propId.startsWith("formula.")) continue;
-      // For file.* properties, only skip ones that are redundant (name/path
-      // variants already shown as the card title) or complex list types that
-      // don't render well as a short chip value.
       if (propId.startsWith("file.")) {
         if (FILE_PROPS_TO_SKIP.has(propId.slice(5))) continue;
-        // file.ctime, file.mtime, file.size, file.folder, etc. pass through.
       }
       const propName = propId.startsWith("note.") ? propId.slice(5) : propId;
       if (groupByProp && propName === groupByProp) continue;
@@ -251,26 +253,63 @@ export class CardManager {
 
       const val = entry.getValue(propId);
       if (!val || val instanceof NullValue || !val.isTruthy()) continue;
-      // Use relative time for dates (e.g. "3 days ago") — much more readable
-      // on a card chip than a raw ISO string or a full locale date.
       const display = formatValueForChip(val);
       if (!display) continue;
 
-      const chip = propsEl.createSpan({
-        cls: "base-board-card-chip",
+      chips.push({
+        propId,
+        displayName: this.view.config.getDisplayName(propId),
+        display,
       });
-      // getDisplayName respects user-configured renames from the Base config.
-      const displayName = this.view.config.getDisplayName(propId);
-      chip.createSpan({
-        text: displayName,
-        cls: "base-board-chip-label",
-      });
-      chip.createSpan({
-        text: display,
-        cls: "base-board-chip-value",
-      });
-      shown++;
     }
+
+    const CHIP_VISIBLE = 4;
+
+    // Render visible chips.
+    for (let i = 0; i < chips.length && i < CHIP_VISIBLE; i++) {
+      const { displayName, display } = chips[i];
+      this.renderChip(propsEl, displayName, display);
+    }
+
+    // Overflow chips (if any) go into a collapsible container.
+    let overflowEl: HTMLDivElement | null = null;
+    for (let i = CHIP_VISIBLE; i < chips.length; i++) {
+      if (!overflowEl) {
+        overflowEl = propsEl.createDiv({
+          cls: "base-board-card-chips-overflow",
+        });
+      }
+      const { displayName, display } = chips[i];
+      this.renderChip(overflowEl, displayName, display);
+    }
+
+    // ---- Expand toggle when chips exceed visible threshold ----
+    if (overflowEl) {
+      const overflowCount = chips.length - CHIP_VISIBLE;
+      const toggleBtn = propsEl.createSpan({
+        cls: "base-board-card-chip-more",
+      });
+      toggleBtn.setText(`+${overflowCount} more`);
+      toggleBtn.addEventListener("click", (e: MouseEvent) => {
+        e.stopPropagation();
+        const expanded = overflowEl.classList.toggle(
+          "base-board-card-chips-overflow--expanded",
+        );
+        toggleBtn.setText(expanded ? "show less" : `+${overflowCount} more`);
+      });
+    }
+  }
+
+  /** Create a single chip span with label + value inside the given parent. */
+  private renderChip(
+    parent: HTMLElement,
+    label: string,
+    value: string,
+  ): HTMLElement {
+    const chip = parent.createSpan({ cls: "base-board-card-chip" });
+    chip.createSpan({ text: label, cls: "base-board-chip-label" });
+    chip.createSpan({ text: value, cls: "base-board-chip-value" });
+    return chip;
   }
 
   private showCardActionMenu(

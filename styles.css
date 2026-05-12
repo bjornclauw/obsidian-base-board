@@ -420,6 +420,28 @@
   text-overflow: ellipsis;
 }
 
+/* Overflow chips — hidden until expanded */
+.base-board-card-chips-overflow {
+  display: none;
+}
+
+.base-board-card-chips-overflow--expanded {
+  display: contents;
+}
+
+/* "Show more" toggle button */
+.base-board-card-chip-more {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.base-board-card-chip-more:hover {
+  color: var(--text-accent);
+}
+
 /* ---- Card drop placeholder ---- */
 
 @keyframes base-board-placeholder-pulse {
