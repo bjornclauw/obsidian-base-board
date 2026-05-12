@@ -433,15 +433,20 @@
 
 /* "Show more" toggle button */
 .base-board-card-chip-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--font-ui-smaller);
-  color: var(--text-muted);
+  color: var(--text-accent);
+  border-radius: var(--radius-s);
+  padding: 2px 6px;
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
 }
 
 .base-board-card-chip-more:hover {
-  color: var(--text-accent);
+  color: var(--text-normal);
 }
 
 /* ---- Card drop placeholder ---- */
