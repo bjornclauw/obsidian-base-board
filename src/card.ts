@@ -283,8 +283,8 @@ export class CardManager {
 
     // Render visible chips.
     for (let i = 0; i < chips.length && i < CHIP_VISIBLE; i++) {
-      const { displayName, display } = chips[i];
-      this.renderChip(propsEl, displayName, display);
+      const { displayName, display, propId } = chips[i];
+      this.renderChip(propsEl, displayName, display, propId);
     }
 
     // Overflow chips (if any) go into a collapsible container.
@@ -295,8 +295,8 @@ export class CardManager {
           cls: "base-board-card-chips-overflow",
         });
       }
-      const { displayName, display } = chips[i];
-      this.renderChip(overflowEl, displayName, display);
+      const { displayName, display, propId } = chips[i];
+      this.renderChip(overflowEl, displayName, display, propId);
     }
 
     // ---- Expand toggle when chips exceed visible threshold ----
@@ -321,8 +321,10 @@ export class CardManager {
     parent: HTMLElement,
     label: string,
     value: string,
+    propId?: string,
   ): HTMLElement {
     const chip = parent.createSpan({ cls: "base-board-card-chip" });
+    if (propId) chip.setAttr("data-property-id", propId);
     chip.createSpan({ text: label, cls: "base-board-chip-label" });
     chip.createSpan({ text: value, cls: "base-board-chip-value" });
     return chip;
