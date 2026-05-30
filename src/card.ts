@@ -103,8 +103,9 @@ export class CardManager {
 
       const isAlt = e.altKey;
       const isShift = e.shiftKey;
+      const isMod = e.ctrlKey || e.metaKey;
 
-      if (isAlt || isShift) {
+      if ((isAlt || isShift) && !isMod) {
         e.preventDefault();
         this.handleCardSelect(filePath, columnName, isShift);
         return;
