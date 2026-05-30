@@ -44,7 +44,7 @@ You can customize the default click behavior (e.g. to always open in a floating 
 
 ### From Obsidian Community Plugins
 
-Search for **Base Board** in the Obsidian Community Plugins browser and click **Install**.
+Search for **Base Board** in the Obsidian Community Plugins browser and click **Install**, or view the plugin directly on the [Obsidian Community Plugins directory](https://community.obsidian.md/plugins/base-board).
 
 ### Using BRAT
 
