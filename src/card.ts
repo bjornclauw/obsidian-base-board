@@ -487,63 +487,16 @@ export class CardManager {
       return;
     }
 
-    const folder = this.getTargetFolder();
-    const safeName = sanitizeFilename(title);
-    let filePath = `${folder}/${safeName}.md`;
+    const overrides = (fm: Record<string, unknown>) => {
+      fm[groupByProp] = columnName;
+      fm[ORDER_PROPERTY] = orderIndex;
+    };
 
-    // Avoid overwriting existing files
-    let counter = 1;
-    while (this.view.app.vault.getAbstractFileByPath(filePath)) {
-      filePath = `${folder}/${safeName} ${counter}.md`;
-      counter++;
+    try {
+      await this.view.createFileForView(title, overrides);
+    } catch (err) {
+      new Notice(`Failed to create card: ${String(err)}`);
     }
-
-    const frontmatter = [
-      "---",
-      `${groupByProp}: ${columnName}`,
-      `${ORDER_PROPERTY}: ${orderIndex}`,
-      "---",
-      "",
-      `# ${title}`,
-      "",
-    ].join("\n");
-
-    await this.view.app.vault.create(filePath, frontmatter);
-    new Notice(`Created "${safeName}"`);
-  }
-
-  /**
-   * Determine the folder for new cards by looking at existing entries.
-   * Falls back to the vault root.
-   *
-   * Uses the official BasesEntry.file property (TFile) which is
-   * guaranteed by the Obsidian API.
-   */
-  private getTargetFolder(): string {
-    // All entries in this board share the same .base query, so the first
-    // entry's parent folder is a good default for new cards.
-    for (const group of this.view.currentGroups) {
-      for (const entry of group.entries) {
-        const path = entry.file?.path;
-        if (path) {
-          const lastSlash = path.lastIndexOf("/");
-          if (lastSlash > 0) return path.substring(0, lastSlash);
-        }
-      }
-    }
-
-    // Fallback: try to infer from the first entry in the raw data list
-    const viewData = (
-      this.view as unknown as { data?: { data?: BasesEntry[] } }
-    ).data;
-    const entries: BasesEntry[] = viewData?.data ?? [];
-    if (entries.length > 0) {
-      const path = entries[0].file?.path ?? "";
-      const lastSlash = path.lastIndexOf("/");
-      if (lastSlash > 0) return path.substring(0, lastSlash);
-    }
-
-    return "";
   }
 
   // ---------------------------------------------------------------------------
