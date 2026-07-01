@@ -929,6 +929,42 @@
   text-shadow: none;
 }
 
+.base-board-chip-property .base-board-chip-property-label {
+  opacity: 0.75;
+  margin-right: 3px;
+  font-weight: var(--font-normal);
+}
+
+/* Chip config modal — show label toggle */
+.chip-show-label-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background-color: var(--background-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.chip-show-label-wrapper:hover {
+  border-color: var(--background-modifier-border-hover);
+}
+
+.chip-show-label-checkbox {
+  margin: 0;
+  cursor: pointer;
+}
+
+.chip-show-label-text {
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
 /* ---- Card border via CSS variable (applied after base card border) ---- */
 
 .base-board-card {

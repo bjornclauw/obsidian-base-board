@@ -442,6 +442,18 @@ export class CardManager {
       }
     }
 
+    const showLabels = this.view.chipProperties.getShowLabels();
+    if (showLabels[propName]) {
+      const propId = propName.startsWith("note.")
+        ? (propName as BasesPropertyId)
+        : (`note.${propName}` as BasesPropertyId);
+      const displayName = this.view.config.getDisplayName(propId);
+      chip.createSpan({
+        text: `${displayName}: `,
+        cls: "base-board-chip-property-label",
+      });
+    }
+
     chip.createSpan({ text: value, cls: "base-board-chip-property-value" });
 
     // Right-click → context menu for color editing

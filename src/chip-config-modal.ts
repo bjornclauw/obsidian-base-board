@@ -267,6 +267,28 @@ export class ChipConfigModal extends Modal {
 
     wrapper.createEl("h3", { text: prop.displayName });
 
+    // Show label toggle
+    const showLabelWrapper = wrapper.createDiv({
+      cls: "chip-show-label-wrapper",
+    });
+    const showLabelCheckbox = showLabelWrapper.createEl("input", {
+      type: "checkbox",
+      cls: "chip-show-label-checkbox",
+    });
+    showLabelCheckbox.checked =
+      this.chipManager.getShowLabels()[prop.name] || false;
+    showLabelCheckbox.onchange = () => {
+      const labels = this.chipManager.getShowLabels();
+      labels[prop.name] = showLabelCheckbox.checked;
+      this.chipManager.setShowLabels(labels);
+    };
+    const showLabelSpan = showLabelWrapper.createEl("span", {
+      text: "Show label in front of value",
+      cls: "chip-show-label-text",
+    });
+    showLabelWrapper.appendChild(showLabelCheckbox);
+    showLabelWrapper.appendChild(showLabelSpan);
+
     // Mode radio group
     const modeSection = wrapper.createDiv({ cls: "chip-mode-section" });
     const fixedRadio = this.buildRadio(

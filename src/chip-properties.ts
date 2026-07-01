@@ -4,6 +4,7 @@ import {
   CONFIG_KEY_CHIP_PROPERTIES,
   CONFIG_KEY_CHIP_COLORS,
   CONFIG_KEY_CHIP_FIXED_COLORS,
+  CONFIG_KEY_CHIP_SHOW_LABELS,
   CONFIG_KEY_BORDER_PROPERTY,
   ORDER_PROPERTY,
 } from "./constants";
@@ -101,6 +102,18 @@ export class ChipPropertiesManager {
 
   public setFixedColors(colors: ChipFixedColorMap): void {
     this.view.config?.set(CONFIG_KEY_CHIP_FIXED_COLORS, colors);
+    this.view.scheduleRender();
+  }
+
+  public getShowLabels(): Record<string, boolean> {
+    const raw = this.view.config?.get(CONFIG_KEY_CHIP_SHOW_LABELS);
+    return raw && typeof raw === "object"
+      ? (raw as Record<string, boolean>)
+      : {};
+  }
+
+  public setShowLabels(labels: Record<string, boolean>): void {
+    this.view.config?.set(CONFIG_KEY_CHIP_SHOW_LABELS, labels);
     this.view.scheduleRender();
   }
 

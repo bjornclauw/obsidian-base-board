@@ -31,6 +31,9 @@ export const CONFIG_KEY_CHIP_COLORS = "chipColors";
 /** Key used by BasesViewConfig.set/get to persist one fixed color per chip property. */
 export const CONFIG_KEY_CHIP_FIXED_COLORS = "chipFixedColors";
 
+/** Key used by BasesViewConfig.set/get to persist per-property "show label" toggles. */
+export const CONFIG_KEY_CHIP_SHOW_LABELS = "chipShowLabels";
+
 /** Key used by BasesViewConfig.set/get to persist which property controls card border color. */
 export const CONFIG_KEY_BORDER_PROPERTY = "borderProperty";
 
