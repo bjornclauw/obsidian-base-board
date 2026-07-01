@@ -944,6 +944,7 @@
   grid-template-rows: auto 1fr;
   grid-template-columns: 260px 1fr;
   height: 100%;
+  margin-bottom: 8px;
 }
 
 /* Header spans both columns */

@@ -199,7 +199,8 @@ export class ChipConfigModal extends Modal {
 
       row.classList.toggle("is-active", this.activeProperty === prop.name);
 
-      row.onclick = () => {
+      row.onclick = (evt) => {
+        if (evt.target === checkbox) return;
         this.activeProperty = prop.name;
         this.renderPropertyList();
         this.renderEditor();
