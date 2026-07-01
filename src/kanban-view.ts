@@ -29,6 +29,7 @@ import {
   CONFIG_KEY_BORDER_PROPERTY,
   CONFIG_KEY_CHIP_PROPERTIES,
   CONFIG_KEY_CHIP_COLORS,
+  CONFIG_KEY_CHIP_FIXED_COLORS,
 } from "./constants";
 
 // ---------------------------------------------------------------------------
@@ -522,6 +523,7 @@ export class KanbanView extends BasesView implements HoverParent {
           this.config?.set(CONFIG_KEY_CHIP_PROPERTIES, config.properties);
           this.config?.set(CONFIG_KEY_BORDER_PROPERTY, config.borderProperty);
           this.config?.set(CONFIG_KEY_CHIP_COLORS, config.colors);
+          this.config?.set(CONFIG_KEY_CHIP_FIXED_COLORS, config.fixedColors);
           this.scheduleRender();
         },
       ).open();

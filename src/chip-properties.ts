@@ -3,6 +3,7 @@ import { KanbanView } from "./kanban-view";
 import {
   CONFIG_KEY_CHIP_PROPERTIES,
   CONFIG_KEY_CHIP_COLORS,
+  CONFIG_KEY_CHIP_FIXED_COLORS,
   CONFIG_KEY_BORDER_PROPERTY,
   ORDER_PROPERTY,
 } from "./constants";
@@ -49,6 +50,9 @@ export interface AvailableProperty {
 /** Chip color mapping stored in view config. */
 export type ChipColorMap = Record<string, Record<string, string>>;
 
+/** Fixed (single) color per chip property. */
+export type ChipFixedColorMap = Record<string, string>;
+
 export class ChipPropertiesManager {
   private view: KanbanView;
 
@@ -90,12 +94,28 @@ export class ChipPropertiesManager {
     this.view.scheduleRender();
   }
 
+  public getFixedColors(): ChipFixedColorMap {
+    const raw = this.view.config?.get(CONFIG_KEY_CHIP_FIXED_COLORS);
+    return raw && typeof raw === "object" ? (raw as ChipFixedColorMap) : {};
+  }
+
+  public setFixedColors(colors: ChipFixedColorMap): void {
+    this.view.config?.set(CONFIG_KEY_CHIP_FIXED_COLORS, colors);
+    this.view.scheduleRender();
+  }
+
   // ---------------------------------------------------------------------------
   //  Color resolution
   // ---------------------------------------------------------------------------
 
   /** Get the color for a specific value of a property. */
   public getColorForValue(propName: string, value: string): string {
+    // Fixed color takes precedence over per-value mapping
+    const fixed = this.getFixedColors();
+    if (fixed[propName]) {
+      return fixed[propName];
+    }
+
     const colors = this.getChipColors();
     const propColors = colors[propName];
     if (propColors && propColors[value]) {

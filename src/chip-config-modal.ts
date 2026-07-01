@@ -1,21 +1,39 @@
-import { App, Modal, Setting } from "obsidian";
+import { App, Modal } from "obsidian";
 import { InputModal } from "./modals";
-import { ChipPropertiesManager, AvailableProperty } from "./chip-properties";
+import {
+  ChipPropertiesManager,
+  AvailableProperty,
+  ChipFixedColorMap,
+} from "./chip-properties";
 
-/** Saved configuration snapshot for the modal. */
 export interface ChipConfigSnapshot {
   properties: string[];
   borderProperty: string;
   colors: Record<string, Record<string, string>>;
+  fixedColors: ChipFixedColorMap;
 }
 
 export class ChipConfigModal extends Modal {
   private chipManager: ChipPropertiesManager;
   private onSubmit: (config: ChipConfigSnapshot) => void;
+
   private availableProps: AvailableProperty[] = [];
-  /** Current in-modal state — not persisted until save. */
+
   private selectedProperties: Set<string> = new Set();
+  private activeProperty: string | null = null;
   private borderProperty: string = "";
+
+  // fixed-color state
+  private fixedColors: ChipFixedColorMap = {};
+  private useFixedColor: boolean = false;
+
+  // layout refs
+  private leftEl!: HTMLDivElement;
+  private rightEl!: HTMLDivElement;
+
+  private propsContainerEl!: HTMLDivElement;
+  private borderSelectEl!: HTMLSelectElement;
+  private editorContainerEl!: HTMLDivElement;
 
   constructor(
     app: App,
@@ -25,109 +43,122 @@ export class ChipConfigModal extends Modal {
     super(app);
     this.chipManager = chipManager;
     this.onSubmit = onSubmit;
-    // Initialize from current config
+
     this.selectedProperties = new Set(chipManager.getChipProperties());
     this.borderProperty = chipManager.getBorderProperty();
+    this.fixedColors = chipManager.getFixedColors();
   }
 
   onOpen(): void {
     const { contentEl } = this;
-    contentEl.createEl("h2", { text: "Configure chip properties" });
 
-    contentEl.createEl("p", {
-      cls: "base-board-chip-config-desc",
-      text: "Select which frontmatter fields render as colored chips on cards. Each chip shows only the value. You can also assign specific colors to specific values.",
-    });
+    contentEl.empty();
 
-    // --- Section A: Chip Properties ---
-    const sectionA = contentEl.createDiv({
-      cls: "base-board-chip-config-section",
-    });
-    sectionA.createEl("h3", { text: "Chip properties" });
-    sectionA.createEl("p", {
-      cls: "setting-item-description",
-      text: "These fields will appear as colored pills on each card.",
-    });
+    // root layout (header + two-column grid)
+    const root = contentEl.createDiv({ cls: "chip-config-layout" });
 
-    const refreshBtn = sectionA.createEl("button", {
-      cls: "base-board-chip-refresh-btn mod-cta",
-      text: "Refresh property list",
-    });
-    refreshBtn.addEventListener("click", () => {
-      void this.refreshAndRender();
-    });
+    this.buildHeader(root);
 
-    this.propsContainerEl = sectionA.createDiv({
-      cls: "base-board-chip-properties-list",
-    });
+    this.leftEl = root.createDiv({ cls: "chip-config-left" });
+    this.rightEl = root.createDiv({ cls: "chip-config-right" });
+    this.buildLeftPanel();
+    this.buildRightPanel();
 
-    // --- Section B: Card Border Property ---
-    const sectionB = contentEl.createDiv({
-      cls: "base-board-chip-config-section",
+    // Add save button below the layout
+    const footerEl = contentEl.createDiv({ cls: "modal-footer" });
+    const saveBtn = footerEl.createEl("button", {
+      text: "Save",
+      cls: "mod-cta",
     });
-    sectionB.createEl("h3", { text: "Card border" });
-    sectionB.createEl("p", {
-      cls: "setting-item-description",
-      text: "Pick a field whose mapped color becomes the card's left border.",
-    });
+    saveBtn.onclick = () => this.submit();
 
-    const borderSelect = sectionB.createEl("select", {
-      cls: "base-board-chip-border-select",
-    });
-    borderSelect.createEl("option", { value: "", text: "No border" });
-    this.borderSelectEl = borderSelect;
-
-    // --- Section C: Color Mapping Editor ---
-    this.colorEditorContainer = contentEl.createDiv({
-      cls: "base-board-chip-config-section",
-    });
-    this.colorEditorContainer.createEl("h3", { text: "Color mappings" });
-    this.colorEditorContainer.createEl("p", {
-      cls: "setting-item-description",
-      text: "Define which color each value should use. Leave empty for auto-assigned colors.",
-    });
-    this.mappingContainer = this.colorEditorContainer.createDiv({
-      cls: "base-board-chip-mapping-container",
-    });
-
-    // --- Action buttons ---
-    const actionsContainer = contentEl.createDiv({
-      cls: "base-board-modal-actions-right",
-    });
-    new Setting(actionsContainer)
-      .addButton((btn) => {
-        btn.setButtonText("Cancel").onClick(() => this.close());
-      })
-      .addButton((btn) => {
-        btn
-          .setButtonText("Save")
-          .setCta()
-          .onClick(() => this.submit());
-      });
-
-    // Initial render
     void this.refreshAndRender();
   }
 
-  private propsContainerEl!: HTMLDivElement;
-  private borderSelectEl!: HTMLSelectElement;
-  private colorEditorContainer!: HTMLDivElement;
-  private mappingContainer!: HTMLDivElement;
+  // ----------------------------
+  // HEADER (future-proof hook)
+  // ----------------------------
+  private buildHeader(parent: HTMLElement): void {
+    const header = parent.createDiv({ cls: "chip-config-header" });
 
-  private async refreshAndRender(): Promise<void> {
-    this.availableProps = this.chipManager.discoverAvailableProperties();
-    this.renderCheckboxes();
-    this.renderBorderSelect();
-    this.renderColorMappings();
+    header.createEl("h2", { text: "Chip configuration" });
+    header.createEl("p", {
+      text: "Manage chip fields, colors, and display behavior.",
+      cls: "setting-item-description",
+    });
   }
 
-  private renderCheckboxes(): void {
+  // ----------------------------
+  // LEFT PANEL (navigation)
+  // ----------------------------
+  private buildLeftPanel(): void {
+    // Properties section
+    const propSection = this.leftEl.createDiv({ cls: "chip-config-section" });
+
+    propSection.createEl("h3", { text: "Properties" });
+
+    const refreshBtn = propSection.createEl("button", {
+      text: "Refresh",
+      cls: "mod-cta",
+    });
+
+    refreshBtn.onclick = () => this.refreshAndRender();
+
+    this.propsContainerEl = propSection.createDiv({
+      cls: "chip-property-list",
+    });
+
+    // Border section
+    const borderSection = this.leftEl.createDiv({
+      cls: "chip-config-section",
+    });
+
+    borderSection.createEl("h3", { text: "Card border" });
+
+    this.borderSelectEl = borderSection.createEl("select");
+  }
+
+  // ----------------------------
+  // RIGHT PANEL (editor)
+  // ----------------------------
+  private buildRightPanel(): void {
+    this.editorContainerEl = this.rightEl.createDiv({
+      cls: "chip-editor-container",
+    });
+
+    this.renderEmptyEditor();
+  }
+
+  private renderEmptyEditor(): void {
+    this.editorContainerEl.empty();
+
+    this.editorContainerEl.createEl("div", {
+      text: "Select a property to edit its values.",
+      cls: "chip-empty-state",
+    });
+  }
+
+  // ----------------------------
+  // DATA REFRESH
+  // ----------------------------
+  private async refreshAndRender(): Promise<void> {
+    this.availableProps = this.chipManager.discoverAvailableProperties();
+
+    this.renderPropertyList();
+    this.renderBorderSelect();
+    this.renderEditor();
+  }
+
+  // ----------------------------
+  // LEFT: properties
+  // ----------------------------
+  private renderPropertyList(): void {
     this.propsContainerEl.empty();
 
     if (this.availableProps.length === 0) {
-      this.propsContainerEl.createEl("p", {
-        cls: "base-board-chip-properties-empty",
-        text: "No properties found. Add frontmatter fields to your cards, then click 'refresh property list'.",
+      this.propsContainerEl.createEl("div", {
+        text: "No properties found yet.",
+        cls: "chip-empty-state",
       });
       return;
     }
@@ -137,195 +168,345 @@ export class ChipConfigModal extends Modal {
         cls: "base-board-chip-property-row",
       });
 
-      const checkbox = activeDocument.createElement("input");
-      checkbox.type = "checkbox";
+      const checkbox = row.createEl("input", {
+        type: "checkbox",
+      });
+
       checkbox.checked = this.selectedProperties.has(prop.name);
-      checkbox.dataset.propName = prop.name;
-      checkbox.addEventListener("change", () => {
+
+      checkbox.onchange = () => {
         if (checkbox.checked) {
           this.selectedProperties.add(prop.name);
+          this.activeProperty = prop.name;
         } else {
           this.selectedProperties.delete(prop.name);
+
+          if (this.activeProperty === prop.name) {
+            this.activeProperty = null;
+          }
         }
-        // Re-render color mappings when selection changes
-        this.renderColorMappings();
-      });
-      row.appendChild(checkbox);
+
+        this.renderPropertyList();
+        this.renderEditor();
+      };
 
       const label = row.createEl("span", {
-        cls: "base-board-chip-property-label",
         text: prop.displayName,
+        cls: "base-board-chip-property-label",
       });
+
       label.title = prop.name;
 
-      if (prop.sampleValues.length > 0) {
-        row.createEl("span", {
-          cls: "base-board-chip-property-samples",
-          text: `Values: ${prop.sampleValues.join(", ")}`,
-        });
-      }
+      row.classList.toggle("is-active", this.activeProperty === prop.name);
+
+      row.onclick = () => {
+        this.activeProperty = prop.name;
+        this.renderPropertyList();
+        this.renderEditor();
+      };
     }
   }
 
+  // ----------------------------
+  // LEFT: border select
+  // ----------------------------
   private renderBorderSelect(): void {
-    // Clear existing options except the first
-    while (this.borderSelectEl.options.length > 1) {
-      this.borderSelectEl.remove(1);
-    }
+    this.borderSelectEl.empty();
+
+    const noneOpt = this.borderSelectEl.createEl("option", {
+      value: "",
+      text: "No border",
+    });
+
+    if (!this.borderProperty) noneOpt.selected = true;
 
     for (const prop of this.availableProps) {
-      const option = this.borderSelectEl.createEl("option", {
+      const opt = this.borderSelectEl.createEl("option", {
         value: prop.name,
         text: prop.displayName,
       });
+
       if (prop.name === this.borderProperty) {
-        option.selected = true;
+        opt.selected = true;
       }
     }
 
-    this.borderSelectEl.addEventListener("change", () => {
+    this.borderSelectEl.onchange = () => {
       this.borderProperty = this.borderSelectEl.value;
-    });
+    };
   }
 
-  private renderColorMappings(): void {
-    this.mappingContainer.empty();
+  // ----------------------------
+  // RIGHT: editor router
+  // ----------------------------
+  private renderEditor(): void {
+    this.editorContainerEl.empty();
 
-    const selectedList = Array.from(this.selectedProperties);
-    if (selectedList.length === 0) {
-      this.mappingContainer.createEl("p", {
-        cls: "base-board-chip-properties-empty",
-        text: "Select at least one chip property above to configure color mappings.",
-      });
+    if (!this.activeProperty) {
+      this.renderEmptyEditor();
       return;
     }
 
-    const currentColors = this.chipManager.getChipColors();
+    const prop = this.availableProps.find(
+      (p) => p.name === this.activeProperty,
+    );
 
-    for (const propName of selectedList) {
-      const prop = this.availableProps.find((p) => p.name === propName);
-      if (!prop) continue;
+    if (!prop) return;
 
-      const mappingSection = this.mappingContainer.createDiv({
-        cls: "base-board-chip-mapping-section",
-      });
-      mappingSection.createEl("h4", { text: prop.displayName });
+    this.renderPropertyEditor(prop);
+  }
 
-      const propColors = currentColors[propName] || {};
-      const values = new Set<string>([...Object.keys(propColors)]);
+  // ----------------------------
+  // RIGHT: property editor
+  // ----------------------------
+  private renderPropertyEditor(prop: AvailableProperty): void {
+    const wrapper = this.editorContainerEl.createDiv({
+      cls: "chip-property-editor",
+    });
 
-      // Also add discovered sample values
-      for (const sample of prop.sampleValues) {
-        values.add(sample);
+    wrapper.createEl("h3", { text: prop.displayName });
+
+    // Mode radio group
+    const modeSection = wrapper.createDiv({ cls: "chip-mode-section" });
+    const fixedRadio = this.buildRadio(
+      modeSection,
+      "chipColorMode",
+      "fixed",
+      "One color for all values",
+    );
+    const perValueRadio = this.buildRadio(
+      modeSection,
+      "chipColorMode",
+      "per-value",
+      "Separate color per value",
+    );
+
+    // Fixed color picker (single)
+    const fixedSection = wrapper.createDiv({ cls: "chip-fixed-section" });
+    const fixedLabel = fixedSection.createEl("label", {
+      cls: "chip-fixed-label",
+    });
+    fixedLabel.createEl("span", { text: "Color: " });
+    const fixedColorInput = fixedLabel.createEl("input", {
+      type: "color",
+      cls: "base-board-chip-color-swatch",
+    });
+    fixedColorInput.value = this.fixedColors[prop.name] || "#808080";
+    fixedColorInput.oninput = () => {
+      this.fixedColors[prop.name] = fixedColorInput.value;
+    };
+
+    // Per-value editor (value rows + add button)
+    const perValueSection = wrapper.createDiv({
+      cls: "chip-per-value-section",
+    });
+    this.renderPerValueRows(perValueSection, prop);
+
+    // Wire radio toggling
+    fixedRadio.onchange = () => {
+      if (fixedRadio.checked) {
+        this.useFixedColor = true;
+        fixedSection.classList.remove("is-hidden");
+        perValueSection.classList.add("is-hidden");
       }
-
-      // Render existing mappings
-      for (const value of values) {
-        // If this value has no mapping and isn't a sample, skip (only show mapped + discovered)
-        if (!propColors[value] && !prop.sampleValues.includes(value)) continue;
-        this.createMappingRow(
-          mappingSection,
-          propName,
-          value,
-          propColors[value] || "",
-        );
+    };
+    perValueRadio.onchange = () => {
+      if (perValueRadio.checked) {
+        this.useFixedColor = false;
+        fixedSection.classList.add("is-hidden");
+        perValueSection.classList.remove("is-hidden");
       }
+    };
 
-      // Add button for new mappings
-      const addBtn = mappingSection.createEl("button", {
-        cls: "base-board-chip-add-mapping-btn",
-        text: "+ add value",
-      });
-      addBtn.addEventListener("click", () => {
-        new InputModal(
-          this.app,
-          "New value",
-          "Enter value name",
-          (newValue) => {
-            if (newValue && newValue.trim()) {
-              this.addMappingRow(mappingSection, propName, newValue.trim(), "");
-            }
-          },
-        ).open();
-      });
+    // Set initial visibility
+    const hasFixed = !!this.fixedColors[prop.name];
+    const hasPerValue =
+      Object.keys(this.chipManager.getChipColors()[prop.name] || {}).length >
+        0 || prop.sampleValues.length > 0;
+
+    if (hasFixed) {
+      fixedRadio.checked = true;
+      this.useFixedColor = true;
+    } else if (hasPerValue) {
+      perValueRadio.checked = true;
+      this.useFixedColor = false;
+    } else {
+      // Default: show per-value section
+      perValueRadio.checked = true;
+      this.useFixedColor = false;
+    }
+
+    if (this.useFixedColor) {
+      fixedSection.classList.remove("is-hidden");
+      perValueSection.classList.add("is-hidden");
+    } else {
+      fixedSection.classList.add("is-hidden");
+      perValueSection.classList.remove("is-hidden");
     }
   }
 
+  private buildRadio(
+    parent: HTMLElement,
+    name: string,
+    value: string,
+    label: string,
+  ): HTMLInputElement {
+    const wrapper = parent.createEl("label", { cls: "chip-radio-label" });
+    const radio = wrapper.createEl("input", {
+      type: "radio",
+      attr: { name, value },
+    });
+    wrapper.createEl("span", { text: label });
+    return radio;
+  }
+
+  private renderPerValueRows(
+    container: HTMLElement,
+    prop: AvailableProperty,
+  ): void {
+    const currentColors = this.chipManager.getChipColors()[prop.name] || {};
+
+    const values = new Set<string>([
+      ...prop.sampleValues,
+      ...Object.keys(currentColors),
+    ]);
+
+    for (const value of values) {
+      this.createMappingRow(
+        container,
+        prop.name,
+        value,
+        currentColors[value] || "",
+      );
+    }
+
+    const addBtn = container.createEl("button", {
+      text: "+ add value",
+      cls: "mod-cta",
+    });
+
+    addBtn.onclick = () => {
+      new InputModal(this.app, "New value", "Enter value", (v) => {
+        if (!v?.trim()) return;
+
+        this.createMappingRowBefore(container, addBtn, prop.name, v.trim(), "");
+      }).open();
+    };
+  }
+
+  // ----------------------------
+  // MAPPING ROWS
+  // ----------------------------
   private createMappingRow(
     container: HTMLElement,
     propName: string,
     value: string,
     currentColor: string,
   ): HTMLDivElement {
-    const row = container.createDiv({ cls: "base-board-chip-mapping-row" });
-
-    row.createEl("span", {
-      cls: "base-board-chip-mapping-value",
-      text: value,
+    const row = container.createDiv({
+      cls: "base-board-chip-mapping-row",
     });
 
-    // Color swatch (clickable to change)
-    const swatch = row.createEl("input", {
+    row.createEl("span", {
+      text: value,
+      cls: "base-board-chip-mapping-value",
+    });
+
+    const color = row.createEl("input", {
       type: "color",
       cls: "base-board-chip-color-swatch",
     });
-    swatch.value = currentColor || "#808080";
-    swatch.dataset.propName = propName;
-    swatch.dataset.value = value;
 
-    swatch.addEventListener("input", (e) => {
-      const target = e.target as HTMLInputElement;
-      this.updateMapping(propName, value, target.value);
-    });
+    color.value = currentColor || "#808080";
 
-    // Preview swatch background
-    if (currentColor) {
-      swatch.style.backgroundColor = currentColor;
-    }
+    color.oninput = () => {
+      this.updateMapping(propName, value, color.value);
+    };
 
-    // Delete button
-    const deleteBtn = row.createEl("button", {
-      cls: "base-board-chip-mapping-delete",
+    const del = row.createEl("button", {
       text: "×",
+      cls: "chip-delete",
     });
-    deleteBtn.title = "Remove mapping";
-    deleteBtn.addEventListener("click", () => {
+
+    del.onclick = () => {
       this.updateMapping(propName, value, "");
       row.remove();
-    });
+    };
 
     return row;
   }
 
-  private addMappingRow(
+  private createMappingRowBefore(
     container: HTMLElement,
+    anchor: HTMLElement,
     propName: string,
     value: string,
-    color: string,
+    currentColor: string,
   ): HTMLDivElement {
-    return this.createMappingRow(container, propName, value, color);
+    const row = container.createDiv({
+      cls: "base-board-chip-mapping-row",
+    });
+
+    row.createEl("span", {
+      text: value,
+      cls: "base-board-chip-mapping-value",
+    });
+
+    const color = row.createEl("input", {
+      type: "color",
+      cls: "base-board-chip-color-swatch",
+    });
+
+    color.value = currentColor || "#808080";
+
+    color.oninput = () => {
+      this.updateMapping(propName, value, color.value);
+    };
+
+    const del = row.createEl("button", {
+      text: "×",
+      cls: "chip-delete",
+    });
+
+    del.onclick = () => {
+      this.updateMapping(propName, value, "");
+      row.remove();
+    };
+
+    anchor.before(row);
+    return row;
   }
 
+  // ----------------------------
+  // STATE UPDATE
+  // ----------------------------
   private updateMapping(propName: string, value: string, color: string): void {
-    const currentColors = this.chipManager.getChipColors();
-    if (!currentColors[propName]) currentColors[propName] = {};
+    const colors = this.chipManager.getChipColors();
+
+    if (!colors[propName]) colors[propName] = {};
+
     if (color) {
-      currentColors[propName][value] = color;
+      colors[propName][value] = color;
     } else {
-      delete currentColors[propName][value];
-      if (Object.keys(currentColors[propName]).length === 0) {
-        delete currentColors[propName];
+      delete colors[propName][value];
+
+      if (Object.keys(colors[propName]).length === 0) {
+        delete colors[propName];
       }
     }
-    // Don't trigger full render here — only on save
   }
 
+  // ----------------------------
+  // SAVE
+  // ----------------------------
   private submit(): void {
     const config: ChipConfigSnapshot = {
       properties: Array.from(this.selectedProperties),
-      borderProperty: this.borderSelectEl.value,
+      borderProperty: this.borderProperty,
       colors: this.chipManager.getChipColors(),
+      fixedColors: { ...this.fixedColors },
     };
+
     this.close();
     this.onSubmit(config);
   }

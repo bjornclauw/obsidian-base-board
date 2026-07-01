@@ -65,18 +65,31 @@ When a folder is moved/renamed, `handleFolderRename()` debounces (250ms burst wi
 - `NO_VALUE_COLUMN = "(No value)"` — column label for entries missing the groupBy property
 - `ORDER_PROPERTY = "kanban_order"` — frontmatter key for card ordering
 - Config keys are all defined in `src/constants.ts` (`CONFIG_KEY_*`)
+  - `CONFIG_KEY_CHIP_FIXED_COLORS = "chipFixedColors"` — persisted fixed color per chip property (one color applied to all values)
 
 ### Chip Properties Feature
 
 Custom frontmatter fields can be rendered as colored chips (like tags) on cards:
 
 - **`ChipPropertiesManager`** (`src/chip-properties.ts`) — manages chip property configuration, color mappings, and property discovery
-- **`ChipConfigModal`** (`src/chip-config-modal.ts`) — UI for configuring which properties become chips and their color mappings
+- **`ChipConfigModal`** (`src/chip-config-modal.ts`) — UI for configuring which properties become chips and their color mappings. Uses a two-column grid layout with header at top, radio toggle between "One color for all values" (fixed) and "Separate color per value" modes, and a Save button in the footer.
 - **Toolbar Button**: Boards now render a persistent `Configure chip properties` button in the board toolbar to open the modal directly from the board UI
 - **Command**: `Configure chip properties` remains available as a fallback from the command palette
-- **Storage**: `chipProperties` (array of property names), `chipColors` (object of property→value→color mappings), `borderProperty` (which field controls card border color)
+- **Storage**: `chipProperties` (array of property names), `chipColors` (object of property→value→color mappings), `chipFixedColors` (object of property→single-color mappings), `borderProperty` (which field controls card border color)
 - **Rendering**: Chips appear between tags and title on cards. Card borders use the configured field's mapped color.
-- **Color resolution**: Uses mapped colors if defined, falls back to deterministic hash (same as tags)
+- **Color resolution**: Checks fixed colors first (one color for all values of a property), then per-value mappings, then falls back to deterministic hash (same as tags).
+
+### Chip Config Modal Layout
+
+The modal uses a CSS Grid layout:
+```
+chip-config-layout (grid: auto 1fr / 260px 1fr)
+├── chip-config-header (spans both columns)
+├── chip-config-left (navigation panel, 260px)
+└── chip-config-right (editor panel, 1fr)
+```
+
+The header is a grid child (not a sibling), ensuring it appears at the top. The Save button is appended to `contentEl` after the grid as a `modal-footer` div.
 
 ## Build Output
 
