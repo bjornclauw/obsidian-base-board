@@ -1211,6 +1211,22 @@
   transform: translateY(1px);
 }
 
+/* Reorder buttons */
+.base-board-chip-move-btn {
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background-color 0.12s ease;
+  user-select: none;
+}
+
+.base-board-chip-move-btn:hover {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
 /* ============================================================
    Right panel — editor
    ============================================================ */

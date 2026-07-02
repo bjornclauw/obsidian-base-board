@@ -22,7 +22,7 @@ export class ChipConfigModal extends Modal {
 
   private availableProps: AvailableProperty[] = [];
 
-  private selectedProperties: Set<string> = new Set();
+  private selectedProperties: string[] = [];
   private activeProperty: string | null = null;
   private borderProperty: string = "";
 
@@ -50,7 +50,7 @@ export class ChipConfigModal extends Modal {
     this.chipManager = chipManager;
     this.onSubmit = onSubmit;
 
-    this.selectedProperties = new Set(chipManager.getChipProperties());
+    this.selectedProperties = [...chipManager.getChipProperties()];
     this.borderProperty = chipManager.getBorderProperty();
     this.colorState = { ...chipManager.getChipColors() };
     this.fixedColors = { ...chipManager.getFixedColors() };
@@ -179,7 +179,15 @@ export class ChipConfigModal extends Modal {
       return;
     }
 
-    for (const prop of this.availableProps) {
+    // Render selected properties first in their configured order, then unselected
+    const orderedProps = [
+      ...this.selectedProperties.map(
+        (name) => this.availableProps.find((p) => p.name === name),
+      ),
+      ...this.availableProps.filter((p) => !this.selectedProperties.includes(p.name)),
+    ].filter(Boolean) as AvailableProperty[];
+
+    for (const prop of orderedProps) {
       const row = this.propsContainerEl.createDiv({
         cls: "base-board-chip-property-row",
       });
@@ -188,14 +196,18 @@ export class ChipConfigModal extends Modal {
         type: "checkbox",
       });
 
-      checkbox.checked = this.selectedProperties.has(prop.name);
+      checkbox.checked = this.selectedProperties.includes(prop.name);
 
       checkbox.onchange = () => {
         if (checkbox.checked) {
-          this.selectedProperties.add(prop.name);
+          if (!this.selectedProperties.includes(prop.name)) {
+            this.selectedProperties.push(prop.name);
+          }
           this.activeProperty = prop.name;
         } else {
-          this.selectedProperties.delete(prop.name);
+          this.selectedProperties = this.selectedProperties.filter(
+            (p) => p !== prop.name,
+          );
 
           if (this.activeProperty === prop.name) {
             this.activeProperty = null;
@@ -212,6 +224,47 @@ export class ChipConfigModal extends Modal {
       });
 
       label.title = prop.name;
+
+      // Reorder buttons (only for selected properties)
+      if (this.selectedProperties.includes(prop.name)) {
+        const idx = this.selectedProperties.indexOf(prop.name);
+        const moveUpBtn = row.createEl("span", {
+          text: "▲",
+          cls: "base-board-chip-move-btn",
+        });
+        moveUpBtn.title = "Move up";
+        moveUpBtn.onclick = (e) => {
+          e.stopPropagation();
+          if (idx > 0) {
+            [this.selectedProperties[idx - 1], this.selectedProperties[idx]] = [
+              this.selectedProperties[idx],
+              this.selectedProperties[idx - 1],
+            ];
+            this.renderPropertyList();
+            this.renderEditor();
+          }
+        };
+
+        const moveDownBtn = row.createEl("span", {
+          text: "▼",
+          cls: "base-board-chip-move-btn",
+        });
+        moveDownBtn.title = "Move down";
+        moveDownBtn.onclick = (e) => {
+          e.stopPropagation();
+          if (idx < this.selectedProperties.length - 1) {
+            [this.selectedProperties[idx], this.selectedProperties[idx + 1]] = [
+              this.selectedProperties[idx + 1],
+              this.selectedProperties[idx],
+            ];
+            this.renderPropertyList();
+            this.renderEditor();
+          }
+        };
+
+        row.appendChild(moveUpBtn);
+        row.appendChild(moveDownBtn);
+      }
 
       row.classList.toggle("is-active", this.activeProperty === prop.name);
 
