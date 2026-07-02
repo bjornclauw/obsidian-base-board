@@ -934,6 +934,7 @@
 .base-board-chip-property-container {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
   margin-bottom: 8px;
 }
@@ -990,8 +991,8 @@
 }
 
 .base-board-chip-property-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   color: inherit;
 }
 
